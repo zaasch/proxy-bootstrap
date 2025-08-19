@@ -5,4 +5,12 @@
 # This script can be used to bootstrap a new managed proxy instance.
 #
 
-echo "Hello, World!"
+# Set strict mode
+set -euo pipefail
+
+# Check if we are running in a VM
+if [ -f /var/run/virtif ]; then
+  echo "Running in a VM"
+else
+  echo "Not running in a VM"
+fi
