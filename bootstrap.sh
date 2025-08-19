@@ -86,7 +86,7 @@ if [ "$VM" -eq 1 ]; then
     echo "$SN"
     echo "Press [Enter] when you are done."
     echo "****************************"
-    read -r
+    read -r < /dev/tty
 
 else
     log "Not running in a VM"
