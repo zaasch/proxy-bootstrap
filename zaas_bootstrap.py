@@ -17,6 +17,7 @@ from typing import Optional
 LOGFILE = "/var/log/zaas-bootstrap.log"
 CONFIG_DIR = "/etc/zaas"
 CONFIG_FILE = os.path.join(CONFIG_DIR, "zaas.json")
+UUID_FILE = os.path.join(CONFIG_DIR, "uuid")
 
 
 class ManagerConfig(BaseModel):
@@ -155,16 +156,15 @@ def main():
         return
 
     # Check if we already have a UUID. If not, generate one
-    if existing and existing.uuid:
-        uuid = existing.uuid
-        log_json(f"Found existing UUID: {uuid}")
+    if os.path.exists(UUID_FILE):
+        with open(UUID_FILE, "r", encoding="utf-8") as f:
+            uuid = uuid_mod.UUID(f.read().strip())
+            log_json(f"Found existing UUID: {uuid}")
     else:
         uuid = uuid_mod.uuid4()
         log_json(f"Generated new UUID: {uuid}")
-
-    # Save the uuid if necessary
-    if not existing or not existing.uuid:
-        atomic_write_json(CONFIG_FILE, {"uuid": str(uuid)})
+        with open(UUID_FILE, "w", encoding="utf-8") as f:
+            f.write(str(uuid))
 
     # Check if we already have a token
     if not existing or not existing.sso.token:

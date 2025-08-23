@@ -16,4 +16,4 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 # Run the bootstrap script
-./.venv/bin/python3 zaas_bootstrap.py
+sudo ./.venv/bin/python3 zaas_bootstrap.py
