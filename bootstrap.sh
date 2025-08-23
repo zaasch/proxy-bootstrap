@@ -94,9 +94,17 @@ if [ "$VM" -eq 1 ]; then
     # Ask for the JSON configuration produced by ZaaS Manager
     echo "****************************"
     echo "Please provide the JSON configuration produced by ZaaS Manager:"
+    echo "(paste it here, then press Ctrl-D)"
     echo "****************************"
-    read -r json_config < /dev/tty
-    echo "$json_config" | jq . > "$CONFIG_FILE"
+
+    json_config="$(cat </dev/tty)" || true
+
+    # Validation & sauvegarde
+    echo "$json_config" | jq . > "$CONFIG_FILE" || {
+        log "Invalid JSON provided."
+        exit 1
+    }
+
     log "Saved ZaaS Manager configuration to: $CONFIG_FILE"
 
 else
