@@ -11,7 +11,7 @@ set -euo pipefail
 # Configuration
 LOGFILE="/var/log/zaas-bootstrap.log"
 CONFIG_DIR="/etc/zaas"
-CONFIG_FILE="$CONFIG_DIR/zaas.conf"
+CONFIG_FILE="$CONFIG_DIR/zaas.json"
 
 # Check we are running as root
 if [ "$(id -u)" -ne 0 ]; then
@@ -87,6 +87,14 @@ if [ "$VM" -eq 1 ]; then
     echo "Press [Enter] when you are done."
     echo "****************************"
     read -r < /dev/tty
+
+    # Ask for the JSON configuration produced by ZaaS Manager
+    echo "****************************"
+    echo "Please provide the JSON configuration produced by ZaaS Manager:"
+    echo "****************************"
+    read -r json_config
+    echo "$json_config" | jq . > $CONFIG_FILE
+    log "Saved ZaaS Manager configuration to: $CONFIG_FILE"
 
 else
     log "Not running in a VM"
