@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-import argparse
-import fcntl
+
 import json
 import os
 import shutil
@@ -10,10 +9,10 @@ import tempfile
 import time
 import uuid
 
+
 LOGFILE = "/var/log/zaas-bootstrap.log"
 CONFIG_DIR = "/etc/zaas"
 CONFIG_FILE = os.path.join(CONFIG_DIR, "zaas.json")
-LOCKFILE = "/var/lock/zaas-bootstrap.lock"
 
 
 def is_root() -> bool:
@@ -22,7 +21,6 @@ def is_root() -> bool:
 
 def log_json(message: str):
     os.makedirs(os.path.dirname(LOGFILE), exist_ok=True)
-    # 0600
     fd = os.open(LOGFILE, os.O_WRONLY | os.O_CREAT, 0o600)
     with os.fdopen(fd, "a", buffering=1) as f:
         rec = {
@@ -36,10 +34,6 @@ def log_json(message: str):
 def fail(msg: str, code: int = 1):
     log_json(f"ERROR: {msg}")
     sys.exit(code)
-
-
-def have_tty() -> bool:
-    return sys.stdin.isatty() and os.access("/dev/tty", os.R_OK)
 
 
 def detect_vm() -> tuple[bool, str]:
@@ -63,10 +57,7 @@ def read_json_multiline_from_tty() -> dict:
     print("Please provide the JSON configuration produced by ZaaS Manager:")
     print("(paste it here, then press Ctrl-D)")
     print("****************************")
-    if not have_tty():
-        fail(
-            "No TTY available. Use --non-interactive with --config-json-file or ZAAS_CONFIG_JSON."
-        )
+
     # Read until EOF (Ctrl-D)
     with open("/dev/tty", "rb", buffering=0) as tty:
         data = tty.read()  # bytes
@@ -77,9 +68,7 @@ def read_json_multiline_from_tty() -> dict:
 
 
 def press_enter_to_continue():
-    if not have_tty():
-        log_json("No TTY: skipping Enter prompt.")
-        return
+
     try:
         with open("/dev/tty", "r", encoding="utf-8", errors="ignore") as tty:
             input("Press [Enter] when you are done. ")
@@ -126,25 +115,6 @@ def main():
         print("This script must be run as root", file=sys.stderr)
         sys.exit(1)
 
-    parser = argparse.ArgumentParser(
-        description="ZaaS managed proxy bootstrap (Python)"
-    )
-    parser.add_argument(
-        "--non-interactive",
-        action="store_true",
-        help="Do not prompt; require JSON via file or env",
-    )
-    parser.add_argument("--config-json-file", help="Path to Manager JSON file")
-    args = parser.parse_args()
-
-    # Lock to prevent concurrent runs
-    os.makedirs(os.path.dirname(LOCKFILE), exist_ok=True)
-    lock_fd = os.open(LOCKFILE, os.O_CREAT | os.O_RDWR, 0o600)
-    try:
-        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        fail(f"Another bootstrap instance is running (lock: {LOCKFILE})")
-
     # Logging file perms ensured by first write
     log_json("Starting ZaaS bootstrap (python)")
 
@@ -181,31 +151,18 @@ def main():
         print("Please register the following serial number in ZaaS Manager:")
         print(serial)
         print("****************************")
-        if not args.non_interactive:
-            press_enter_to_continue()
+        press_enter_to_continue()
 
     # Acquire Manager JSON
-    manager_cfg: dict | None = None
-    env_json = os.environ.get("ZAAS_CONFIG_JSON", "").strip()
-    if args.config_json_file:
-        manager_cfg = load_json_file(args.config_json_file)
-    elif env_json:
-        try:
-            manager_cfg = json.loads(env_json)
-        except json.JSONDecodeError as e:
-            fail(f"ZAAS_CONFIG_JSON is invalid JSON: {e}")
-    elif in_vm and not args.non_interactive:
-        manager_cfg = read_json_multiline_from_tty()
-    else:
-        log_json(
-            "No Manager JSON provided yet (this may be fine if registration is pending)."
-        )
+    manager_cfg = read_json_multiline_from_tty()
 
     # Merge and save if we have Manager JSON
     if manager_cfg:
         merged = merge_preferring_manager(existing, manager_cfg)
         atomic_write_json(CONFIG_FILE, merged)
         log_json(f"Saved ZaaS Manager configuration to: {CONFIG_FILE}")
+    else:
+        log_json("No Manager JSON provided.")
 
     # Post-read logging of key fields
     final = load_json_file(CONFIG_FILE)
