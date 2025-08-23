@@ -141,24 +141,28 @@ def main():
     else:
         log_json(f"Found existing serial number: {serial}")
 
-    # Save (at least) the serial early
-    atomic_write_json(CONFIG_FILE, {"serial": serial})
-    log_json(f"Updated configuration file: {CONFIG_FILE}")
+    # Check if we already have a token
+    token = existing.get("token")
+    if not token:
 
-    # Manual step when in VM: show serial, wait Enter, then read Manager JSON
-    if in_vm:
-        print("****************************")
-        print("Please register the following serial number in ZaaS Manager:")
-        print(serial)
-        print("****************************")
-        press_enter_to_continue()
+        # Save (at least) the serial early
+        atomic_write_json(CONFIG_FILE, {"serial": serial})
+        log_json(f"Updated configuration file: {CONFIG_FILE}")
 
-    # Acquire Manager JSON
-    manager_cfg = read_json_multiline_from_tty()
+        # Manual step when in VM: show serial, wait Enter, then read Manager JSON
+        if in_vm:
+            print("****************************")
+            print("Please register the following serial number in ZaaS Manager:")
+            print(serial)
+            print("****************************")
+            press_enter_to_continue()
 
-    # Write Manager JSON
-    atomic_write_json(CONFIG_FILE, manager_cfg)
-    log_json(f"Saved ZaaS Manager configuration to: {CONFIG_FILE}")
+        # Acquire Manager JSON
+        manager_cfg = read_json_multiline_from_tty()
+
+        # Write Manager JSON
+        atomic_write_json(CONFIG_FILE, manager_cfg)
+        log_json(f"Saved ZaaS Manager configuration to: {CONFIG_FILE}")
 
     # Post-read logging of key fields
     final = load_json_file(CONFIG_FILE)
