@@ -82,7 +82,7 @@ def read_json_multiline_from_tty() -> ManagerConfig:
     with open("/dev/tty", "rb", buffering=0) as tty:
         data = tty.read()  # bytes
     try:
-        return ManagerConfig.model_validate_strings(data.decode("utf-8"))
+        return ManagerConfig.model_validate_json(data.decode("utf-8"))
     except json.JSONDecodeError as e:
         fail(f"Invalid JSON provided: {e}")
     except Exception as e:
