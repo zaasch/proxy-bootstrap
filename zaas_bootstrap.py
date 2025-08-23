@@ -8,6 +8,7 @@ import sys
 import tempfile
 import time
 import uuid
+import requests
 
 
 LOGFILE = "/var/log/zaas-bootstrap.log"
@@ -155,24 +156,34 @@ def main():
     # Acquire Manager JSON
     manager_cfg = read_json_multiline_from_tty()
 
-    # Merge and save if we have Manager JSON
-    if manager_cfg:
-        merged = merge_preferring_manager(existing, manager_cfg)
-        atomic_write_json(CONFIG_FILE, merged)
-        log_json(f"Saved ZaaS Manager configuration to: {CONFIG_FILE}")
-    else:
-        log_json("No Manager JSON provided.")
+    # Write Manager JSON
+    atomic_write_json(CONFIG_FILE, manager_cfg)
+    log_json(f"Saved ZaaS Manager configuration to: {CONFIG_FILE}")
 
     # Post-read logging of key fields
     final = load_json_file(CONFIG_FILE)
-    for key in ["serial", "hostname", "sso_provider", "registration_url", "token"]:
+    for key in ["uuid", "hostname", "sso_provider", "registration_url", "token"]:
         val = final.get(key)
-        if val:
-            log_json(f"Found {key} in the configuration file: {val}")
-        else:
-            log_json(f"No {key} found in the configuration file.")
+        if not val:
+            fail(f"Missing {key} in configuration file.")
 
-    # TODO: Register the proxy to the SSO provider (HTTP call) if needed.
+    # Query SSO provider for token
+    serial_uuid = final["uuid"]
+    sso_provider = final["sso_provider"]
+    registration_url = final["registration_url"]
+    token = final["token"]
+    response = requests.post(
+        sso_provider + registration_url,
+        json={
+            "clientId": "mproxy_" + serial_uuid
+        },
+        headers={
+            "Authorization": f"Bearer {token}"
+        }
+    )
+
+    print(response.status_code)
+    print(response.json())
 
     log_json("Bootstrap finished successfully.")
 
