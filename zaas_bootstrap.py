@@ -7,13 +7,32 @@ import subprocess
 import sys
 import tempfile
 import time
-import uuid
+import uuid as uuid_mod
 import requests
+
+from pydantic import BaseModel, Field
+from typing import Any, Optional
 
 
 LOGFILE = "/var/log/zaas-bootstrap.log"
 CONFIG_DIR = "/etc/zaas"
 CONFIG_FILE = os.path.join(CONFIG_DIR, "zaas.json")
+
+
+class ManagerConfig(BaseModel):
+
+    manager_url: str = Field(...)
+    uuid: uuid_mod.UUID = Field(...)
+    hostname: str = Field(...)
+
+    class SSOConfig(BaseModel):
+        provider_url: str = Field(...)
+        registration_path: str = Field(...)
+        client_id: str = Field(...)
+        token: Optional[str] = Field(None)
+        client_secret: Optional[str] = Field(None)
+
+    sso: SSOConfig = Field(...)
 
 
 def is_root() -> bool:
@@ -53,7 +72,7 @@ def detect_vm() -> tuple[bool, str]:
     return False, ""
 
 
-def read_json_multiline_from_tty() -> dict:
+def read_json_multiline_from_tty() -> ManagerConfig:
     print("****************************")
     print("Please provide the JSON configuration produced by ZaaS Manager:")
     print("(paste it here, then press Ctrl-D)")
@@ -63,9 +82,12 @@ def read_json_multiline_from_tty() -> dict:
     with open("/dev/tty", "rb", buffering=0) as tty:
         data = tty.read()  # bytes
     try:
-        return json.loads(data.decode("utf-8"))
+        return ManagerConfig.model_validate_strings(data.decode("utf-8"))
     except json.JSONDecodeError as e:
         fail(f"Invalid JSON provided: {e}")
+    except Exception as e:
+        fail(f"Failed to read from TTY: {e}")
+    exit(1)
 
 
 def press_enter_to_continue():
@@ -76,12 +98,12 @@ def press_enter_to_continue():
         fail(f"Failed to read from TTY: {e}")
 
 
-def load_json_file(path: str) -> dict:
+def load_json_file(path: str) -> ManagerConfig | None:
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            return ManagerConfig.model_validate_strings(f.read())
     except FileNotFoundError:
-        return {}
+        return None
     except json.JSONDecodeError as e:
         fail(f"Config file {path} is not valid JSON: {e}")
     except Exception as e:
@@ -98,16 +120,12 @@ def atomic_write_json(path: str, payload: dict, mode: int = 0o600):
         os.fsync(tmp.fileno())
         tmp_name = tmp.name
     os.chmod(tmp_name, mode)
-    os.replace(tmp_name, path)  # atomic
+    os.replace(tmp_name, path)
 
 
-def merge_preferring_manager(existing: dict, manager: dict) -> dict:
-    """Keep existing serial if manager JSON doesn’t provide one; otherwise prefer manager."""
-    merged = dict(existing)
-    merged.update(manager or {})
-    if "serial" not in (manager or {}) and "serial" in existing:
-        merged["serial"] = existing["serial"]
-    return merged
+def register_proxy_with_manager(config: ManagerConfig):
+    pass
+
 
 
 def main():
@@ -132,28 +150,31 @@ def main():
     # Load existing config
     existing = load_json_file(CONFIG_FILE)
 
-    # Ensure serial
-    serial = existing.get("serial")
-    if not serial:
-        serial = str(uuid.uuid4())
-        existing["serial"] = serial
-        log_json(f"Generated new serial number: {serial}")
+    # If we have a client-secret in the configuration file, the proxy has already been configured
+    if existing and existing.sso.client_secret:
+        log_json("Proxy has already been configured.")
+        return
+
+    # Check if we already have a UUID. If not, generate one
+    if existing and existing.uuid:
+        uuid = existing.uuid
+        log_json(f"Found existing UUID: {uuid}")
     else:
-        log_json(f"Found existing serial number: {serial}")
+        uuid = uuid_mod.uuid4()
+        log_json(f"Generated new UUID: {uuid}")
+
+    # Save the uuid if necessary
+    if not existing or not existing.uuid:
+        atomic_write_json(CONFIG_FILE, {"uuid": str(uuid)})
 
     # Check if we already have a token
-    token = existing.get("token")
-    if not token:
+    if not existing or not existing.sso.token:
 
-        # Save (at least) the serial early
-        atomic_write_json(CONFIG_FILE, {"serial": serial})
-        log_json(f"Updated configuration file: {CONFIG_FILE}")
-
-        # Manual step when in VM: show serial, wait Enter, then read Manager JSON
+        # Manual step when in VM: show UUID, wait Enter, then read Manager JSON
         if in_vm:
             print("****************************")
-            print("Please register the following serial number in ZaaS Manager:")
-            print(serial)
+            print("Please register the following UUID in ZaaS Manager:")
+            print(uuid)
             print("****************************")
             press_enter_to_continue()
 
@@ -161,33 +182,41 @@ def main():
         manager_cfg = read_json_multiline_from_tty()
 
         # Write Manager JSON
-        atomic_write_json(CONFIG_FILE, manager_cfg)
+        atomic_write_json(CONFIG_FILE, manager_cfg.model_dump())
         log_json(f"Saved ZaaS Manager configuration to: {CONFIG_FILE}")
 
     # Post-read logging of key fields
     final = load_json_file(CONFIG_FILE)
-    for key in ["uuid", "hostname", "sso_provider", "registration_url", "token"]:
-        val = final.get(key)
-        if not val:
-            fail(f"Missing {key} in configuration file.")
+    if not final:
+        fail(f"Failed to load configuration file: {CONFIG_FILE}")
+        exit(1)
 
     # Query SSO provider for token
-    serial_uuid = final["uuid"]
-    sso_provider = final["sso_provider"]
-    registration_url = final["registration_url"]
-    token = final["token"]
-    response = requests.get(
-        sso_provider + registration_url + '/mproxy_' + serial_uuid,
-        headers={
-            "Authorization": f"Bearer {token}"
-        }
-    )
+    try:
+        response = requests.get(
+            final.sso.provider_url + final.sso.registration_path + '/' + final.sso.client_id,
+            headers={
+                "Authorization": f"Bearer {final.sso.token}"
+            }
+        )
+        response.raise_for_status()
+    except Exception as e:
+        fail(f"Failed to contact SSO provider: {e}")
+        exit(1)
 
-    print(response.status_code)
-    print(response.json())
+    # Extract client-secret from response
+    client_secret = response.json().get("secret")
+    if not client_secret:
+        fail("Missing client_secret in SSO provider response.")
 
-    log_json("Bootstrap finished successfully.")
+    # Remove token from config and add client-secret
+    final.sso.token = None
+    final.sso.client_secret = client_secret
+    atomic_write_json(CONFIG_FILE, final.model_dump())
+    log_json(f"Updated configuration file: {CONFIG_FILE}")
 
+    # Register the proxy with the manager
+    register_proxy_with_manager(final)
 
 if __name__ == "__main__":
     try:
