@@ -111,12 +111,12 @@ def load_json_file(path: str) -> ManagerConfig | None:
         fail(f"Cannot read config file {path}: {e}")
 
 
-def atomic_write_json(path: str, payload: dict, mode: int = 0o600):
+def atomic_write_json(path: str, payload: ManagerConfig, mode: int = 0o600):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with tempfile.NamedTemporaryFile(
         "w", encoding="utf-8", delete=False, dir=os.path.dirname(path)
     ) as tmp:
-        json.dump(payload, tmp, ensure_ascii=False, indent=2)
+        tmp.write(payload.model_dump_json())
         tmp.flush()
         os.fsync(tmp.fileno())
         tmp_name = tmp.name
@@ -181,7 +181,7 @@ def main():
         manager_cfg = read_json_multiline_from_tty()
 
         # Write Manager JSON
-        atomic_write_json(CONFIG_FILE, manager_cfg.model_dump())
+        atomic_write_json(CONFIG_FILE, manager_cfg)
         log_json(f"Saved ZaaS Manager configuration to: {CONFIG_FILE}")
 
     # Post-read logging of key fields
@@ -212,7 +212,7 @@ def main():
     # Remove token from config and add client-secret
     final.sso.token = None
     final.sso.client_secret = client_secret
-    atomic_write_json(CONFIG_FILE, final.model_dump())
+    atomic_write_json(CONFIG_FILE, final)
     log_json(f"Updated configuration file: {CONFIG_FILE}")
 
     # Register the proxy with the manager
