@@ -101,7 +101,7 @@ def press_enter_to_continue():
 def load_json_file(path: str) -> ManagerConfig | None:
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return ManagerConfig.model_validate_strings(f.read())
+            return ManagerConfig.model_validate_json(f.read())
     except FileNotFoundError:
         return None
     except json.JSONDecodeError as e:
@@ -125,7 +125,6 @@ def atomic_write_json(path: str, payload: dict, mode: int = 0o600):
 
 def register_proxy_with_manager(config: ManagerConfig):
     pass
-
 
 
 def main():
@@ -194,10 +193,11 @@ def main():
     # Query SSO provider for token
     try:
         response = requests.get(
-            final.sso.provider_url + final.sso.registration_path + '/' + final.sso.client_id,
-            headers={
-                "Authorization": f"Bearer {final.sso.token}"
-            }
+            final.sso.provider_url
+            + final.sso.registration_path
+            + "/"
+            + final.sso.client_id,
+            headers={"Authorization": f"Bearer {final.sso.token}"},
         )
         response.raise_for_status()
     except Exception as e:
@@ -217,6 +217,7 @@ def main():
 
     # Register the proxy with the manager
     register_proxy_with_manager(final)
+
 
 if __name__ == "__main__":
     try:
