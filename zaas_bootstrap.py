@@ -11,7 +11,7 @@ import uuid as uuid_mod
 import requests
 
 from pydantic import BaseModel, Field
-from typing import Any, Optional
+from typing import Optional
 
 
 LOGFILE = "/var/log/zaas-bootstrap.log"
@@ -82,7 +82,7 @@ def read_json_multiline_from_tty() -> ManagerConfig:
     with open("/dev/tty", "rb", buffering=0) as tty:
         data = tty.read()  # bytes
     try:
-        return ManagerConfig.model_validate_json(data.decode("utf-8"))
+        return ManagerConfig.model_validate(data.decode("utf-8"))
     except json.JSONDecodeError as e:
         fail(f"Invalid JSON provided: {e}")
     except Exception as e:
@@ -101,7 +101,7 @@ def press_enter_to_continue():
 def load_json_file(path: str) -> ManagerConfig | None:
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return ManagerConfig.model_validate_json(f.read())
+            return ManagerConfig.model_validate(f.read())
     except FileNotFoundError:
         return None
     except json.JSONDecodeError as e:
