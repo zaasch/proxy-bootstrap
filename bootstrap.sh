@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 
 # Install required packages
-sudo apt install -y python3-requests python3-poetry git
+sudo apt install -y python3-venv
 
 # Clone full repository
+rm -rf proxy-bootstrap
 git clone https://github.com/zaasch/proxy-bootstrap.git proxy-bootstrap
 
-# Install python dependencies with poetry
+# Create virtual environment
 cd proxy-bootstrap
-poetry install
+python3 -m venv .venv
 
-# Run the bootstrap script with poetry
-poetry run python3 zaas_bootstrap.py
+# Install python dependencies
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Run the bootstrap script
+./.venv/bin/python3 zaas_bootstrap.py
