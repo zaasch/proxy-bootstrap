@@ -176,11 +176,8 @@ def main():
     sso_provider = final["sso_provider"]
     registration_url = final["registration_url"]
     token = final["token"]
-    response = requests.post(
-        sso_provider + registration_url,
-        json={
-            "clientId": "mproxy_" + serial_uuid
-        },
+    response = requests.get(
+        sso_provider + registration_url + '/mproxy_' + serial_uuid,
         headers={
             "Authorization": f"Bearer {token}"
         }
