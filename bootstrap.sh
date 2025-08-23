@@ -8,6 +8,9 @@
 # Set strict mode
 set -euo pipefail
 
+# Non-interactive Debian frontend
+DEBIAN_FRONTEND=noninteractive
+
 # Configuration
 LOGFILE="/var/log/zaas-bootstrap.log"
 CONFIG_DIR="/etc/zaas"
