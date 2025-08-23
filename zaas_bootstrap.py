@@ -70,10 +70,9 @@ def read_json_multiline_from_tty() -> dict:
 def press_enter_to_continue():
 
     try:
-        with open("/dev/tty", "r", encoding="utf-8", errors="ignore") as tty:
-            input("Press [Enter] when you are done. ")
-    except Exception:
-        log_json("Warning: failed to read Enter from TTY; continuing.")
+        input("Press [Enter] when you are done. ")
+    except Exception as e:
+        fail(f"Failed to read from TTY: {e}")
 
 
 def load_json_file(path: str) -> dict:
