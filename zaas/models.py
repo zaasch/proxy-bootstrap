@@ -9,6 +9,7 @@ class ManagerConfig(BaseModel):
     manager_url: str = Field(...)
     uuid: uuid_mod.UUID = Field(...)
     hostname: str = Field(...)
+    api_path: str = Field(...)
 
     class SSOConfig(BaseModel):
         provider_url: str = Field(...)

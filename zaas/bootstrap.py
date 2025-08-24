@@ -1,6 +1,4 @@
 import os
-import shutil
-import subprocess
 import json
 import sys
 import tempfile
@@ -12,6 +10,7 @@ from pathlib import Path
 from .models import ManagerConfig
 from .logger import Logger
 from .config import config
+from .utils import utils
 
 
 class ZaaSBootstrap:
@@ -20,24 +19,6 @@ class ZaaSBootstrap:
 
     def __init__(self, logger: Logger) -> None:
         self.logger = logger
-
-    def is_root(self) -> bool:
-        return os.geteuid() == 0
-
-    def detect_vm(self) -> tuple[bool, str]:
-        """Use systemd-detect-virt if available."""
-        if shutil.which("systemd-detect-virt"):
-            try:
-                out = subprocess.run(
-                    ["systemd-detect-virt"], check=False, capture_output=True, text=True
-                )
-                if out.returncode == 0:
-                    return True, (out.stdout.strip() or "unknown")
-                return False, ""
-            except Exception:
-                return False, ""
-        # Fallback: consider 'not in VM' if tool isn't present
-        return False, ""
 
     def read_json_multiline_from_tty(self) -> ManagerConfig:
         print("****************************")
@@ -88,7 +69,7 @@ class ZaaSBootstrap:
 
     def run(self):
 
-        if not self.is_root():
+        if not utils.is_root():
             print("This script must be run as root", file=sys.stderr)
             sys.exit(1)
 
@@ -100,7 +81,7 @@ class ZaaSBootstrap:
         os.chmod(config.CONFIG_DIR, 0o700)
 
         # VM detection
-        in_vm, hypervisor = self.detect_vm()
+        in_vm, hypervisor = utils.detect_vm()
         if in_vm:
             self.logger.log_json(f"We are running in a VM ({hypervisor}).")
         else:
