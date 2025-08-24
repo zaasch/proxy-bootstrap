@@ -4,7 +4,7 @@
 sudo apt install -y python3-venv
 
 # Clone full repository
-rm -rf proxy-bootstrap
+sudo rm -rf proxy-bootstrap
 git clone https://github.com/zaasch/proxy-bootstrap.git proxy-bootstrap
 
 # Create virtual environment
