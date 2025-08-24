@@ -35,6 +35,7 @@ class ZaaSRegister:
             token_url=self.config.sso.provider_url + self.config.sso.token_path,
             base_url=self.config.manager_url + self.config.api_path
         )
+        self.client.fetch_token()
 
     def read_config_file(self, path: str) -> ManagerConfig | None:
         """
