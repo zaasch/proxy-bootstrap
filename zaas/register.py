@@ -94,4 +94,4 @@ class ZaaSRegister:
         if response.status_code == 200:
             self.logger.log_json("ZaaS instance registered successfully")
         else:
-            self.logger.fail(f"Failed to register ZaaS instance: {response.text}")
+            self.logger.fail(f"Failed to register ZaaS instance. Get status code {response.status_code} with error: {response.text}")
