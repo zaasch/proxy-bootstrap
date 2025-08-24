@@ -93,5 +93,9 @@ class ZaaSRegister:
         response = self.client.post(f"/{self.config.uuid}/register", json=extra_data)
         if response.status_code == 200:
             self.logger.log_json("ZaaS instance registered successfully")
+        elif response.status_code == 400:
+            self.logger.fail(f"Failed to register ZaaS instance. Bad request: {response.text}")
+        elif response.status_code == 302:
+            self.logger.fail(f"Failed to register ZaaS instance. Redirected to {response.headers.get('Location')}")
         else:
             self.logger.fail(f"Failed to register ZaaS instance. Get status code {response.status_code} with error: {response.text}")
