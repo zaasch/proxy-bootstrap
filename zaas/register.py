@@ -93,7 +93,7 @@ class ZaaSRegister:
         extra_data["io"] = io_info
 
         # Call the registration API
-        response = self.client.post(f"/{self.config.uuid}/register", json=extra_data)
+        response = self.client.post(f"/{self.config.uuid}/register", json={"extra_data": extra_data})
         if response.status_code == 200:
             self.logger.log_json("ZaaS instance registered successfully")
         elif response.status_code == 400:
