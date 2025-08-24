@@ -37,6 +37,9 @@ class ZaaSRegister:
         )
         self.client.fetch_token()
 
+        # Log
+        self.logger.log_json("SSO authentication successful")
+
     def read_config_file(self, path: str) -> ManagerConfig | None:
         """
         Read configuration from a JSON file and return a ManagerConfig object.
