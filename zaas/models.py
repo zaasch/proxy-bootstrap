@@ -13,6 +13,7 @@ class ManagerConfig(BaseModel):
     class SSOConfig(BaseModel):
         provider_url: str = Field(...)
         registration_path: str = Field(...)
+        token_path: str = Field(...)
         client_id: str = Field(...)
         token: Optional[str] = Field(None)
         client_secret: Optional[str] = Field(None)

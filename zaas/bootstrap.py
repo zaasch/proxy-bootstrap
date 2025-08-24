@@ -93,7 +93,7 @@ class ZaaSBootstrap:
             sys.exit(1)
 
         # Logging file perms ensured by first write
-        self.logger.log_json("Starting ZaaS bootstrap (python)")
+        self.logger.log_json("Starting ZaaS bootstrap.")
 
         # Ensure config dir
         os.makedirs(config.CONFIG_DIR, exist_ok=True)
@@ -102,7 +102,7 @@ class ZaaSBootstrap:
         # VM detection
         in_vm, hypervisor = self.detect_vm()
         if in_vm:
-            self.logger.log_json(f"We detected that we are running in a VM ({hypervisor}).")
+            self.logger.log_json(f"We are running in a VM ({hypervisor}).")
         else:
             self.logger.log_json("Not running in a VM")
 
