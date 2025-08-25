@@ -102,3 +102,11 @@ class ZaaSRegister:
             self.logger.fail(f"Failed to register ZaaS instance. Redirected to {response.headers.get('Location')}")
         else:
             self.logger.fail(f"Failed to register ZaaS instance. Get status code {response.status_code} with error: {response.text}")
+
+    def get_github_token(self):
+
+        response = self.client.get(f"/{self.config.uuid}/github/token")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            self.logger.fail(f"Failed to retrieve GitHub token. Get status code {response.status_code} with error: {response.text}")
