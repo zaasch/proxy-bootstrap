@@ -40,3 +40,9 @@ chmod +x askpass.sh
 GIT_ASKPASS=$(pwd)/askpass.sh \
 GIT_TERMINAL_PROMPT=0 \
 ./.venv/bin/ansible-pull -U https://github.com/zaasch/managed-proxy.git -i localhost playbooks/pb_bootstrap.yml
+
+# Remove the local copy of the repository
+rm -rf proxy-bootstrap
+
+# Echo success
+echo "Bootstrap process completed successfully."
