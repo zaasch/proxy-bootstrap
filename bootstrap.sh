@@ -35,12 +35,7 @@ echo " done."
 # Run the register process
 ./.venv/bin/python3 register.py
 
-# Create the zaas user if it does not exist
-if ! id -u zaas > /dev/null 2>&1; then
-  useradd -m -U zaas
-fi
-
-# Run ansible-pull for the first time
+# Run ansible-pull for the first time as root
 chmod +x askpass.sh
 GIT_ASKPASS=$(pwd)/askpass.sh \
 GIT_TERMINAL_PROMPT=0 \
