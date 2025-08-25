@@ -44,4 +44,4 @@ fi
 chmod +x askpass.sh
 GIT_ASKPASS=$(pwd)/askpass.sh \
 GIT_TERMINAL_PROMPT=0 \
-./.venv/bin/ansible-pull -U https://github.com/zaasch/managed-proxy.git -i localhost
+./.venv/bin/ansible-pull -U https://github.com/zaasch/managed-proxy.git -i localhost playbooks/pb_bootstrap.yml
