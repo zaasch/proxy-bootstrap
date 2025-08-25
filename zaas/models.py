@@ -20,3 +20,8 @@ class ManagerConfig(BaseModel):
         client_secret: Optional[str] = Field(None)
 
     sso: SSOConfig = Field(...)
+
+    class ZabbixConfig(BaseModel):
+        repo_version: str = Field(...)
+
+    zabbix: ZabbixConfig = Field(...)
