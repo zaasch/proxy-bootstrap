@@ -4,3 +4,4 @@ pydantic_settings
 authlib
 psutil
 httpx
+ansible

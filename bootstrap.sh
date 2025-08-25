@@ -28,3 +28,6 @@ sudo ./.venv/bin/python3 bootstrap.py
 
 # Run the register process
 sudo ./.venv/bin/python3 register.py
+
+# Run ansible-pull for the first time
+sudo GIT_ASKPASS=$(pwd)/askpass.sh GIT_TERMINAL_PROMPT=0 ./.venv/bin/ansible-pull -U https://github.com/zaasch/managed-proxy.git -i localhost

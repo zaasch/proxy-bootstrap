@@ -8,6 +8,7 @@ class Config(BaseSettings):
     CONFIG_DIR: str = Field("/etc/zaas", description="Path to the config directory")
     CONFIG_FILE: str = Field("zaas.json", description="Path to the config file")
     UUID_FILE: str = Field("uuid", description="Path to the UUID file")
+    GITHUB_TOKEN_FILE: str = Field(".github_token", description="Path to the GitHub token file")
 
 
 config = Config()  # type: ignore
